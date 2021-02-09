@@ -1,31 +1,69 @@
-import { createStore } from "redux";
+const toDoForm = document.querySelector(".js-toDoForm"),
+    toDoInput = toDoForm.querySelector("input"),
+    toDoList = document.querySelector(".js-toDoList");
 
-const add = document.getElementById("add");
-const minus = document.getElementById("minus");
-const number = document.querySelector("span");
+const TODOS_LS = "toDos";
 
-//string으로 쓸 때보다 변수를 정의해두면 javascript가 정의되지 않은 변수라고 말해줘서 디버깅이 쉽다
-const ADD = "ADD" 
-const MINUS = "MINUS"
+let toDos = [];
 
-const countModifier = (count = 0, action) => {
-    switch (action.type) {
-        case ADD:
-            return count += 1;
-        case MINUS:
-            return count -= 1;
-        default:
-            return count;
-    }
-};
+function deleteToDo(event) {
+    const btn = event.target;
+    const li = btn.parentNode;
+    toDoList.removeChild(li);
+    const cleanToDos = toDos.filter(function(toDo){
+        return toDo.id !== parseInt(li.id);
+    });
+    toDos = cleanToDos;
+    saveToDos();
+}
 
-const countStore = createStore(countModifier);
 
-const onChange = () => {
-    number.innerText = countStore.getState();
-};
+function saveToDos() {
+    localStorage.setItem(TODOS_LS, JSON.stringify(toDos));
+}
 
-countStore.subscribe(onChange);
 
-add.addEventListener("click", () => countStore.dispatch({ type: ADD }));
-minus.addEventListener("click", () => countStore.dispatch({ type: MINUS }));
+function paintToDo(text) {
+    const li = document.createElement("li");
+    const delBtn = document.createElement("button");
+    delBtn.innerText = "✖";
+    delBtn.addEventListener("click", deleteToDo)
+    const span = document.createElement("span");
+    const newId = toDos.length + 1;
+    span.innerText = text;
+    li.appendChild(delBtn);
+    li.appendChild(span);
+    toDoList.appendChild(li);
+    li.id = newId;
+    const toDoObj = {
+        text: text,
+        id: newId   
+    };
+    toDos.push(toDoObj);
+    saveToDos();
+
+}
+
+function handleSubmit(event) {
+    event.preventDefault();
+    const currentValue = toDoInput.value;
+    paintToDo(currentValue);
+    toDoInput.value = "";
+}
+
+function loadToDos() {
+    const loadedToDos = localStorage.getItem(TODOS_LS);
+    if (loadedToDos !== null) {
+        const parsedToDos = JSON.parse(loadedToDos);
+        parsedToDos.forEach(function(toDo){
+            paintToDo(toDo.text);
+        });
+    } 
+}
+
+function init() {
+    loadToDos();
+    toDoForm.addEventListener("submit", handleSubmit)
+}
+
+init();
