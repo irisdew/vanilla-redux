@@ -1,69 +1,58 @@
-const toDoForm = document.querySelector(".js-toDoForm"),
-    toDoInput = toDoForm.querySelector("input"),
-    toDoList = document.querySelector(".js-toDoList");
+import { createStore } from "redux";
 
-const TODOS_LS = "toDos";
+const form = document.querySelector(".js-toDoForm"),
+    input = form.querySelector("input"),
+    ul = document.querySelector(".js-toDoList");
 
-let toDos = [];
+const ADD_TODO = "ADD_TODO";
+const DELETE_TODO = "DELETE_TODO";
 
-function deleteToDo(event) {
-    const btn = event.target;
-    const li = btn.parentNode;
-    toDoList.removeChild(li);
-    const cleanToDos = toDos.filter(function(toDo){
-        return toDo.id !== parseInt(li.id);
+const reducer = (state = [], action) => {
+    switch(action.type) {
+        case ADD_TODO:
+            return [ { text: action.text, id: Date.now() }, ...state ];
+        case DELETE_TODO:
+            return state.filter(toDo => toDo.id !== action.id )
+        default:
+            return state;
+    }
+};
+
+const store = createStore(reducer);
+
+store.subscribe(() => console.log(store.getState()));
+
+const addToDo = text => {
+    store.dispatch({ type: "ADD_TODO", text });
+};
+
+const deleteToDo = (event) => {
+    const id = parseInt(event.target.parentNode.id);
+    store.dispatch({ type: DELETE_TODO, id })
+}
+
+const paintToDos = () => {
+    const toDos = store.getState();
+    ul.innerHTML = '';
+    toDos.forEach(toDo => {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        li.id = toDo.id;
+        li.innerText = toDo.text;
+        btn.innerText = "DEL";
+        btn.addEventListener("click", deleteToDo)
+        ul.appendChild(li);
+        li.appendChild(btn);
     });
-    toDos = cleanToDos;
-    saveToDos();
+}
+store.subscribe(paintToDos);
+
+
+const onSubmit = e => {
+    e.preventDefault();
+    const toDo = input.value;
+    input.value = "";
+    addToDo(toDo);
 }
 
-
-function saveToDos() {
-    localStorage.setItem(TODOS_LS, JSON.stringify(toDos));
-}
-
-
-function paintToDo(text) {
-    const li = document.createElement("li");
-    const delBtn = document.createElement("button");
-    delBtn.innerText = "✖";
-    delBtn.addEventListener("click", deleteToDo)
-    const span = document.createElement("span");
-    const newId = toDos.length + 1;
-    span.innerText = text;
-    li.appendChild(delBtn);
-    li.appendChild(span);
-    toDoList.appendChild(li);
-    li.id = newId;
-    const toDoObj = {
-        text: text,
-        id: newId   
-    };
-    toDos.push(toDoObj);
-    saveToDos();
-
-}
-
-function handleSubmit(event) {
-    event.preventDefault();
-    const currentValue = toDoInput.value;
-    paintToDo(currentValue);
-    toDoInput.value = "";
-}
-
-function loadToDos() {
-    const loadedToDos = localStorage.getItem(TODOS_LS);
-    if (loadedToDos !== null) {
-        const parsedToDos = JSON.parse(loadedToDos);
-        parsedToDos.forEach(function(toDo){
-            paintToDo(toDo.text);
-        });
-    } 
-}
-
-function init() {
-    loadToDos();
-    toDoForm.addEventListener("submit", handleSubmit)
-}
-
-init();
+form.addEventListener("submit", onSubmit)
